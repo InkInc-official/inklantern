@@ -1,0 +1,46 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E3A25C"/>
+      <stop offset="55%" stop-color="#C98A4B"/>
+      <stop offset="100%" stop-color="#B9502F"/>
+    </linearGradient>
+    <radialGradient id="haze" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#F3D9A9" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#F3D9A9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="26" fill="#F7F3EA"/>
+
+  <!-- ambient glow behind lantern -->
+  <circle cx="64" cy="62" r="46" fill="url(#haze)"/>
+
+  <!-- lantern hanger ring -->
+  <path d="M64 16 a7 7 0 1 0 0.1 0" fill="none" stroke="#232B4D" stroke-width="4.2" stroke-linecap="round"/>
+  <!-- top cap -->
+  <path d="M50 30 L78 30 L73 40 L55 40 Z" fill="#232B4D"/>
+  <!-- lantern body (frame) -->
+  <path d="M46 40
+           C46 40 40 52 40 76
+           C40 100 50 112 64 112
+           C78 112 88 100 88 76
+           C88 52 82 40 82 40
+           Z"
+        fill="none" stroke="#232B4D" stroke-width="5" stroke-linejoin="round"/>
+  <!-- frame ribs -->
+  <path d="M64 40 L64 112" stroke="#232B4D" stroke-width="3" opacity="0.5"/>
+  <path d="M46 76 L82 76" stroke="#232B4D" stroke-width="3" opacity="0.5"/>
+  <!-- base foot -->
+  <path d="M54 112 L74 112 L71 120 L57 120 Z" fill="#232B4D"/>
+
+  <!-- signature: ink-drop flame inside the lantern -->
+  <path d="M64 54
+           C74 68 78 78 78 86
+           C78 96.5 71.7 103 64 103
+           C56.3 103 50 96.5 50 86
+           C50 78 54 68 64 54
+           Z"
+        fill="url(#glow)"/>
+  <ellipse cx="59" cy="82" rx="4.2" ry="6.5" fill="#F7E4C4" opacity="0.55"/>
+</svg>

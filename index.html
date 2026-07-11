@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>InkLantern｜リスナー手帖</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F7F3EA;
+    --paper-card: #FFFDF8;
+    --ink: #232B4D;
+    --ink-soft: #4A5178;
+    --muted: #8A8578;
+    --line: #E4DECF;
+    --warm-near: #7C8FA6;
+    --warm-mid: #C98A4B;
+    --warm-far: #B9502F;
+    --accent-soft: #EFE6D3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(35,43,77,0.05) 1px, transparent 0);
+    background-size: 22px 22px;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    color:var(--ink);
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  header{margin-bottom:28px;display:flex;align-items:center;gap:14px;}
+  .app-icon{width:44px;height:44px;flex-shrink:0;}
+  .header-text h1{margin:0 0 4px;}
+  h1{
+    font-family:'Shippori Mincho', serif;
+    font-weight:700;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:0.04em;
+  }
+  .sub{color:var(--muted);font-size:13.5px;letter-spacing:0.02em;}
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;
+    margin:22px 0 18px;
+    align-items:center;
+  }
+  select, .btn, input[type=text]{
+    font-family:inherit;font-size:14px;
+    border:1px solid var(--line);
+    background:var(--paper-card);
+    color:var(--ink);
+    border-radius:8px;
+    padding:9px 14px;
+  }
+  .btn{
+    cursor:pointer;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    font-weight:500;
+    letter-spacing:0.02em;
+    transition:opacity .15s;
+  }
+  .btn:hover{opacity:0.85;}
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+  }
+  .btn.small{padding:6px 11px;font-size:12.5px;}
+  .count{color:var(--muted);font-size:13px;margin-left:auto;}
+
+  .empty{
+    text-align:center;padding:60px 20px;color:var(--muted);
+    border:1px dashed var(--line);border-radius:14px;
+    font-size:14px;line-height:1.9;
+  }
+
+  .card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px;
+    margin-bottom:14px;
+    position:relative;
+    box-shadow: 0 1px 2px rgba(35,43,77,0.04);
+  }
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;}
+  .name-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .name{font-family:'Shippori Mincho', serif;font-weight:700;font-size:19px;}
+  .meta{color:var(--muted);font-size:12.5px;}
+  .badge{
+    flex-shrink:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:64px;height:64px;border-radius:50%;
+    color:#fff;font-family:'Shippori Mincho', serif;
+    text-align:center;line-height:1.1;
+  }
+  .badge .num{font-size:19px;font-weight:700;}
+  .badge .unit{font-size:9.5px;letter-spacing:0.05em;opacity:0.9;}
+
+  .body-row{margin-top:12px;font-size:13.5px;line-height:1.75;}
+  .body-row .label{color:var(--muted);font-size:11.5px;letter-spacing:0.04em;margin-right:6px;}
+  .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .tag{
+    background:var(--accent-soft);color:var(--ink-soft);
+    font-size:11.5px;padding:4px 10px;border-radius:999px;
+  }
+  .footer-row{
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+  }
+  .dates{color:var(--muted);font-size:11.5px;}
+  .actions{display:flex;gap:6px;}
+  .actions button{
+    background:transparent;border:none;color:var(--muted);
+    cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;
+  }
+  .actions button:hover{background:var(--accent-soft);color:var(--ink);}
+
+  .form-panel{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:22px;
+    display:none;
+  }
+  .form-panel.open{display:block;}
+  .form-panel h2{
+    font-family:'Shippori Mincho', serif;font-size:17px;margin:0 0 16px;
+  }
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid .full{grid-column:1 / -1;}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;letter-spacing:0.03em;}
+  input, textarea{
+    width:100%;font-family:inherit;font-size:14px;
+    border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;background:#fff;color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:56px;}
+  .form-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end;}
+
+  footer{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
+    text-align:center;color:var(--muted);font-size:12px;line-height:2;
+  }
+  footer a{color:var(--warm-far);text-decoration:none;font-weight:500;}
+  footer a:hover{text-decoration:underline;}
+
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr;}
+    .card-top{flex-direction:row;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="app-icon" src="icon.svg" alt="InkLantern">
+    <div class="header-text">
+      <h1>InkLantern</h1>
+      <div class="sub">出会った人を、忘れないための場所。</div>
+    </div>
+  </header>
+
+  <div class="form-panel" id="formPanel">
+    <h2 id="formTitle">新しく記録する</h2>
+    <div class="grid">
+      <div><label>出会った日</label><input type="date" id="f_metDate"></div>
+      <div><label>最後に会いに来てくれた日</label><input type="date" id="f_lastDate"></div>
+      <div><label>名前</label><input type="text" id="f_name" placeholder="リスナー名"></div>
+      <div><label>性別</label><input type="text" id="f_gender" placeholder="例：女性 / 男性 / 未回答"></div>
+      <div><label>年齢</label><input type="text" id="f_age" placeholder="例：28"></div>
+      <div><label>Xアカウント</label><input type="text" id="f_x" placeholder="@..."></div>
+      <div class="full"><label>どんな話をしたか</label><textarea id="f_talk" placeholder="覚えておきたい会話の内容"></textarea></div>
+      <div class="full"><label>どんな音楽が好きか</label><input type="text" id="f_music" placeholder="好きなアーティスト・ジャンルなど"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn ghost" onclick="closeForm()">キャンセル</button>
+      <button class="btn" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" onclick="openForm()">＋ 新しく記録する</button>
+    <select id="sortMode" onchange="render()">
+      <option value="days_desc">会いに来てない日数が長い順</option>
+      <option value="days_asc">最近会った順</option>
+      <option value="met_desc">出会った日が新しい順</option>
+      <option value="name">名前順</option>
+    </select>
+    <span class="count" id="countLabel"></span>
+  </div>
+
+  <div id="list"></div>
+
+  <footer>
+    <div>InkLantern is <a href="https://github.com/YOUR-ACCOUNT/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
+    <div style="margin-top:6px;"><a href="privacy.html">プライバシーポリシー</a>　・　<a href="terms.html">利用規約</a></div>
+    <div style="margin-top:6px;">Ink Inc. ライバー募集 → <a href="https://inkinc-hp.vercel.app/" target="_blank" rel="noopener">詳しくはこちら</a></div>
+</footer>
+</div>
+
+<script>
+const STORAGE_KEY = "listener_notebook_entries";
+let entries = [];
+let editingId = null;
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){ entries = []; }
+}
+function saveLocal(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){}
+}
+
+function daysSince(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  const now = new Date();
+  d.setHours(0,0,0,0); now.setHours(0,0,0,0);
+  return Math.round((now - d) / 86400000);
+}
+
+function badgeColor(days){
+  if(days === null) return 'var(--muted)';
+  if(days <= 14) return 'var(--warm-near)';
+  if(days <= 45) return 'var(--warm-mid)';
+  return 'var(--warm-far)';
+}
+
+function openForm(id){
+  editingId = id ?? null;
+  const panel = document.getElementById('formPanel');
+  panel.classList.add('open');
+  if(id){
+    const e = entries.find(x=>x.id===id);
+    document.getElementById('formTitle').textContent = e.name + " を編集";
+    document.getElementById('f_metDate').value = e.metDate || '';
+    document.getElementById('f_lastDate').value = e.lastDate || '';
+    document.getElementById('f_name').value = e.name || '';
+    document.getElementById('f_gender').value = e.gender || '';
+    document.getElementById('f_age').value = e.age || '';
+    document.getElementById('f_x').value = e.x || '';
+    document.getElementById('f_talk').value = e.talk || '';
+    document.getElementById('f_music').value = e.music || '';
+  } else {
+    document.getElementById('formTitle').textContent = '新しく記録する';
+    ['f_metDate','f_lastDate','f_name','f_gender','f_age','f_x','f_talk','f_music'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f_lastDate').value = new Date().toISOString().slice(0,10);
+  }
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function closeForm(){
+  document.getElementById('formPanel').classList.remove('open');
+  editingId = null;
+}
+function saveEntry(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ alert('名前を入力してください'); return; }
+  const data = {
+    id: editingId || (Date.now()+Math.random().toString(16).slice(2)),
+    metDate: document.getElementById('f_metDate').value,
+    lastDate: document.getElementById('f_lastDate').value,
+    name: name,
+    gender: document.getElementById('f_gender').value.trim(),
+    age: document.getElementById('f_age').value.trim(),
+    x: document.getElementById('f_x').value.trim(),
+    talk: document.getElementById('f_talk').value.trim(),
+    music: document.getElementById('f_music').value.trim(),
+  };
+  if(editingId){
+    entries = entries.map(e=> e.id===editingId ? data : e);
+  } else {
+    entries.push(data);
+  }
+  saveLocal();
+  closeForm();
+  render();
+}
+function deleteEntry(id){
+  if(!confirm('この記録を削除しますか？')) return;
+  entries = entries.filter(e=>e.id!==id);
+  saveLocal();
+  render();
+}
+
+function render(){
+  const mode = document.getElementById('sortMode').value;
+  let list = [...entries];
+  list.forEach(e => e._days = daysSince(e.lastDate));
+  if(mode==='days_desc') list.sort((a,b)=>(b._days??-1)-(a._days??-1));
+  if(mode==='days_asc') list.sort((a,b)=>(a._days??1e9)-(b._days??1e9));
+  if(mode==='met_desc') list.sort((a,b)=> (b.metDate||'').localeCompare(a.metDate||''));
+  if(mode==='name') list.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
+
+  document.getElementById('countLabel').textContent = entries.length + ' 人を記録中';
+
+  const container = document.getElementById('list');
+  if(list.length===0){
+    container.innerHTML = '<div class="empty">まだ誰も記録されていません。<br>「＋ 新しく記録する」から、最初の出会いを書き留めてみてください。</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(e=>{
+    const days = e._days;
+    const daysLabel = days===null ? '—' : days;
+    const color = badgeColor(days);
+    const metLabel = e.metDate || '未記入';
+    const lastLabel = e.lastDate || '未記入';
+    const metaBits = [e.gender, e.age ? e.age+'歳' : '', e.x].filter(Boolean).join(' ・ ');
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div>
+          <div class="name-row">
+            <span class="name">${escapeHtml(e.name)}</span>
+          </div>
+          <div class="meta">${escapeHtml(metaBits)}</div>
+        </div>
+        <div class="badge" style="background:${color}">
+          <div class="num">${daysLabel}</div>
+          <div class="unit">${days===null?'':'日経過'}</div>
+        </div>
+      </div>
+      ${e.talk ? `<div class="body-row"><span class="label">TALK</span>${escapeHtml(e.talk)}</div>` : ''}
+      ${e.music ? `<div class="tags"><span class="tag">♪ ${escapeHtml(e.music)}</span></div>` : ''}
+      <div class="footer-row">
+        <div class="dates">出会い ${metLabel} ／ 最終訪問 ${lastLabel}</div>
+        <div class="actions">
+          <button onclick="openForm('${e.id}')">編集</button>
+          <button onclick="deleteEntry('${e.id}')">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+loadLocal();
+render();
+</script>
+</body>
+</html>
