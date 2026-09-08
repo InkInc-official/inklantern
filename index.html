@@ -133,6 +133,8 @@
   .bday-tag.today{
     background:var(--warm-far);color:#fff;
   }
+  .custom-row{margin-top:10px;font-size:13px;line-height:1.8;color:var(--ink-soft);}
+  .custom-row .clabel{color:var(--muted);font-size:11px;margin-right:6px;}
   .footer-row{
     margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
@@ -161,13 +163,31 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .grid .full{grid-column:1 / -1;}
   label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;letter-spacing:0.03em;}
-  input, textarea{
+  input, textarea, select{
     width:100%;font-family:inherit;font-size:14px;
     border:1px solid var(--line);border-radius:8px;
     padding:9px 11px;background:#fff;color:var(--ink);
   }
   textarea{resize:vertical;min-height:56px;}
   .form-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end;}
+
+  .custom-manage{
+    margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);
+  }
+  .custom-manage > label{margin-bottom:8px;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--accent-soft);color:var(--ink-soft);
+    font-size:12px;padding:5px 6px 5px 10px;border-radius:999px;
+  }
+  .chip button{
+    background:transparent;border:none;color:var(--ink-soft);cursor:pointer;
+    font-size:13px;line-height:1;padding:2px 4px;
+  }
+  .chip button:hover{color:var(--warm-far);}
+  .add-field-row{display:flex;gap:6px;}
+  .add-field-row input{flex:1;}
 
   @media (max-width:560px){
     .grid{grid-template-columns:1fr;}
@@ -194,10 +214,27 @@
       <div><label>性別</label><input type="text" id="f_gender" placeholder="例：女性 / 男性 / 未回答"></div>
       <div><label>年齢</label><input type="text" id="f_age" placeholder="例：28"></div>
       <div><label>Xアカウント</label><input type="text" id="f_x" placeholder="@..."></div>
-      <div><label>🎂 誕生日</label><input type="date" id="f_birthday"></div>
+      <div>
+        <label>🎂 誕生日（月日のみ）</label>
+        <div style="display:flex;gap:6px;">
+          <select id="f_birthMonth"><option value="">月</option></select>
+          <select id="f_birthDay"><option value="">日</option></select>
+        </div>
+      </div>
       <div class="full"><label>どんな話をしたか</label><textarea id="f_talk" placeholder="覚えておきたい会話の内容"></textarea></div>
       <div class="full"><label>どんな音楽が好きか</label><input type="text" id="f_music" placeholder="好きなアーティスト・ジャンルなど"></div>
+      <div class="full" id="customFieldsContainer"></div>
     </div>
+
+    <div class="custom-manage">
+      <label>項目を追加する（全員のカードに共通で表示されます）</label>
+      <div class="chip-row" id="customFieldChips"></div>
+      <div class="add-field-row">
+        <input type="text" id="newFieldName" placeholder="例：血液型">
+        <button type="button" class="btn small ghost" onclick="addCustomField()">追加</button>
+      </div>
+    </div>
+
     <div class="form-actions">
       <button class="btn ghost" onclick="closeForm()">キャンセル</button>
       <button class="btn" onclick="saveEntry()">保存する</button>
@@ -219,15 +256,17 @@
   <div id="list"></div>
 
   <footer>
-    <div>InkLantern is <a href="https://github.com/YOUR-ACCOUNT/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
+    <div>InkLantern is <a href="https://github.com/InkInc-official/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
     <div style="margin-top:6px;"><a href="privacy.html">プライバシーポリシー</a>　・　<a href="terms.html">利用規約</a></div>
-    <div style="margin-top:6px;">Ink Inc. ライバー募集 → <a href="https://REPLACE-WITH-YOUR-RECRUIT-URL" target="_blank" rel="noopener">詳しくはこちら</a></div>
+    <div style="margin-top:6px;">Ink Inc. ライバー募集 → <a href="https://inkinc-hp.vercel.app/" target="_blank" rel="noopener">詳しくはこちら</a></div>
   </footer>
 </div>
 
 <script>
 const STORAGE_KEY = "listener_notebook_entries";
+const FIELDS_KEY = "listener_notebook_custom_fields";
 let entries = [];
+let customFields = [];
 let editingId = null;
 
 function loadLocal(){
@@ -235,9 +274,16 @@ function loadLocal(){
     const raw = localStorage.getItem(STORAGE_KEY);
     entries = raw ? JSON.parse(raw) : [];
   }catch(e){ entries = []; }
+  try{
+    const rawF = localStorage.getItem(FIELDS_KEY);
+    customFields = rawF ? JSON.parse(rawF) : [];
+  }catch(e){ customFields = []; }
 }
 function saveLocal(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){}
+}
+function saveFields(){
+  try{ localStorage.setItem(FIELDS_KEY, JSON.stringify(customFields)); }catch(e){}
 }
 
 function daysSince(dateStr){
@@ -248,15 +294,20 @@ function daysSince(dateStr){
   return Math.round((now - d) / 86400000);
 }
 
-function daysUntilBirthday(dateStr){
-  if(!dateStr) return null;
-  const b = new Date(dateStr);
+// birthday は "MM-DD" 形式（年は保持しない＝年齢が推測されない）
+function daysUntilBirthday(mmdd){
+  if(!mmdd) return null;
+  const parts = mmdd.split('-');
+  if(parts.length !== 2) return null;
+  const month = parseInt(parts[0], 10) - 1;
+  const day = parseInt(parts[1], 10);
+  if(isNaN(month) || isNaN(day)) return null;
   const now = new Date();
   now.setHours(0,0,0,0);
-  let next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  let next = new Date(now.getFullYear(), month, day);
   next.setHours(0,0,0,0);
   if(next < now){
-    next = new Date(now.getFullYear() + 1, b.getMonth(), b.getDate());
+    next = new Date(now.getFullYear() + 1, month, day);
   }
   return Math.round((next - now) / 86400000);
 }
@@ -268,10 +319,62 @@ function badgeColor(days){
   return 'var(--warm-far)';
 }
 
+function populateBirthdaySelects(selectedMonth, selectedDay){
+  const mSel = document.getElementById('f_birthMonth');
+  const dSel = document.getElementById('f_birthDay');
+  mSel.innerHTML = '<option value="">月</option>' +
+    Array.from({length:12}, (_,i)=>i+1).map(m=>`<option value="${m}" ${String(m)===String(selectedMonth)?'selected':''}>${m}月</option>`).join('');
+  dSel.innerHTML = '<option value="">日</option>' +
+    Array.from({length:31}, (_,i)=>i+1).map(d=>`<option value="${d}" ${String(d)===String(selectedDay)?'selected':''}>${d}日</option>`).join('');
+}
+
+function renderCustomFieldChips(){
+  const wrap = document.getElementById('customFieldChips');
+  if(customFields.length===0){
+    wrap.innerHTML = '<span style="color:var(--muted);font-size:12px;">まだ項目がありません</span>';
+    return;
+  }
+  wrap.innerHTML = customFields.map(f=>
+    `<span class="chip">${escapeHtml(f)}<button type="button" onclick="removeCustomField('${escapeHtml(f).replace(/'/g,"\\'")}')" title="削除">×</button></span>`
+  ).join('');
+}
+
+function renderCustomFieldInputs(entry){
+  const container = document.getElementById('customFieldsContainer');
+  if(customFields.length===0){ container.innerHTML=''; return; }
+  container.innerHTML = customFields.map(f=>{
+    const val = entry && entry.custom ? (entry.custom[f] || '') : '';
+    return `<div style="margin-bottom:10px;"><label>${escapeHtml(f)}</label><input type="text" class="custom-field-input" data-field="${escapeHtml(f)}" value="${escapeHtml(val)}"></div>`;
+  }).join('');
+}
+
+function addCustomField(){
+  const input = document.getElementById('newFieldName');
+  const name = input.value.trim();
+  if(!name) return;
+  if(customFields.includes(name)){ alert('その項目はすでにあります'); return; }
+  customFields.push(name);
+  saveFields();
+  input.value = '';
+  renderCustomFieldChips();
+  const currentEntry = editingId ? entries.find(x=>x.id===editingId) : null;
+  renderCustomFieldInputs(currentEntry);
+}
+function removeCustomField(name){
+  if(!confirm(`「${name}」の項目を削除しますか？（既に入力済みのデータは各記録に残ります）`)) return;
+  customFields = customFields.filter(f=>f!==name);
+  saveFields();
+  renderCustomFieldChips();
+  const currentEntry = editingId ? entries.find(x=>x.id===editingId) : null;
+  renderCustomFieldInputs(currentEntry);
+  render();
+}
+
 function openForm(id){
   editingId = id ?? null;
   const panel = document.getElementById('formPanel');
   panel.classList.add('open');
+  renderCustomFieldChips();
   if(id){
     const e = entries.find(x=>x.id===id);
     document.getElementById('formTitle').textContent = e.name + " を編集";
@@ -281,13 +384,18 @@ function openForm(id){
     document.getElementById('f_gender').value = e.gender || '';
     document.getElementById('f_age').value = e.age || '';
     document.getElementById('f_x').value = e.x || '';
-    document.getElementById('f_birthday').value = e.birthday || '';
     document.getElementById('f_talk').value = e.talk || '';
     document.getElementById('f_music').value = e.music || '';
+    let bm = '', bd = '';
+    if(e.birthday){ const p = e.birthday.split('-'); bm = String(parseInt(p[0],10)); bd = String(parseInt(p[1],10)); }
+    populateBirthdaySelects(bm, bd);
+    renderCustomFieldInputs(e);
   } else {
     document.getElementById('formTitle').textContent = '新しく記録する';
-    ['f_metDate','f_lastDate','f_name','f_gender','f_age','f_x','f_birthday','f_talk','f_music'].forEach(id=>document.getElementById(id).value='');
+    ['f_metDate','f_lastDate','f_name','f_gender','f_age','f_x','f_talk','f_music'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f_lastDate').value = new Date().toISOString().slice(0,10);
+    populateBirthdaySelects('', '');
+    renderCustomFieldInputs(null);
   }
   panel.scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -298,6 +406,18 @@ function closeForm(){
 function saveEntry(){
   const name = document.getElementById('f_name').value.trim();
   if(!name){ alert('名前を入力してください'); return; }
+
+  const bm = document.getElementById('f_birthMonth').value;
+  const bd = document.getElementById('f_birthDay').value;
+  const birthday = (bm && bd) ? `${String(bm).padStart(2,'0')}-${String(bd).padStart(2,'0')}` : '';
+
+  const custom = {};
+  document.querySelectorAll('.custom-field-input').forEach(inp=>{
+    const field = inp.getAttribute('data-field');
+    const val = inp.value.trim();
+    if(val) custom[field] = val;
+  });
+
   const data = {
     id: editingId || (Date.now()+Math.random().toString(16).slice(2)),
     metDate: document.getElementById('f_metDate').value,
@@ -306,9 +426,10 @@ function saveEntry(){
     gender: document.getElementById('f_gender').value.trim(),
     age: document.getElementById('f_age').value.trim(),
     x: document.getElementById('f_x').value.trim(),
-    birthday: document.getElementById('f_birthday').value,
+    birthday: birthday,
     talk: document.getElementById('f_talk').value.trim(),
     music: document.getElementById('f_music').value.trim(),
+    custom: custom,
   };
   if(editingId){
     entries = entries.map(e=> e.id===editingId ? data : e);
@@ -358,6 +479,9 @@ function render(){
       const label = bday===0 ? '🎂 今日が誕生日！' : `🎂 誕生日まであと${bday}日`;
       bdayHtml = `<span class="tag ${cls}">${label}</span>`;
     }
+    const customHtml = (e.custom && Object.keys(e.custom).length>0)
+      ? `<div class="custom-row">${customFields.filter(f=>e.custom[f]).map(f=>`<span class="clabel">${escapeHtml(f)}</span>${escapeHtml(e.custom[f])}`).join('　　')}</div>`
+      : '';
     return `
     <div class="card">
       <div class="card-top">
@@ -374,6 +498,7 @@ function render(){
       </div>
       ${e.talk ? `<div class="body-row"><span class="label">TALK</span>${escapeHtml(e.talk)}</div>` : ''}
       ${(e.music || bdayHtml) ? `<div class="tags">${e.music ? `<span class="tag">♪ ${escapeHtml(e.music)}</span>` : ''}${bdayHtml}</div>` : ''}
+      ${customHtml}
       <div class="footer-row">
         <div class="dates">出会い ${metLabel} ／ 最終訪問 ${lastLabel}</div>
         <div class="actions">
@@ -387,7 +512,7 @@ function render(){
 
 function escapeHtml(s){
   if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 loadLocal();
