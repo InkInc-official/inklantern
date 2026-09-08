@@ -13,6 +13,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lantern">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper: #F7F3EA;
@@ -40,6 +42,13 @@
   header{margin-bottom:28px;display:flex;align-items:center;gap:14px;}
   .app-icon{width:44px;height:44px;flex-shrink:0;}
   .header-text h1{margin:0 0 4px;}
+  footer{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
+    text-align:center;color:var(--muted);font-size:12px;line-height:2;
+  }
+  footer a{color:var(--warm-far);text-decoration:none;font-weight:500;}
+  footer a:hover{text-decoration:underline;}
+  .oss-note{font-size:11px;color:var(--muted);opacity:0.8;}
   h1{
     font-family:'Shippori Mincho', serif;
     font-weight:700;
@@ -115,6 +124,15 @@
     background:var(--accent-soft);color:var(--ink-soft);
     font-size:11.5px;padding:4px 10px;border-radius:999px;
   }
+  .bday-tag{
+    background:#F3D9A9;color:#7A4A1E;font-weight:700;
+  }
+  .bday-tag.soon{
+    background:#E3A25C;color:#fff;
+  }
+  .bday-tag.today{
+    background:var(--warm-far);color:#fff;
+  }
   .footer-row{
     margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
@@ -127,6 +145,7 @@
   }
   .actions button:hover{background:var(--accent-soft);color:var(--ink);}
 
+  /* form */
   .form-panel{
     background:var(--paper-card);
     border:1px solid var(--line);
@@ -150,13 +169,6 @@
   textarea{resize:vertical;min-height:56px;}
   .form-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end;}
 
-  footer{
-    margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
-    text-align:center;color:var(--muted);font-size:12px;line-height:2;
-  }
-  footer a{color:var(--warm-far);text-decoration:none;font-weight:500;}
-  footer a:hover{text-decoration:underline;}
-
   @media (max-width:560px){
     .grid{grid-template-columns:1fr;}
     .card-top{flex-direction:row;}
@@ -168,8 +180,8 @@
   <header>
     <img class="app-icon" src="icon.svg" alt="InkLantern">
     <div class="header-text">
-      <h1>Ink Lantern</h1>
-      <div class="sub">出会った人を、忘れないためのリスナー手帖。</div>
+      <h1>InkLantern</h1>
+      <div class="sub">出会った人を、忘れないための場所。</div>
     </div>
   </header>
 
@@ -182,6 +194,7 @@
       <div><label>性別</label><input type="text" id="f_gender" placeholder="例：女性 / 男性 / 未回答"></div>
       <div><label>年齢</label><input type="text" id="f_age" placeholder="例：28"></div>
       <div><label>Xアカウント</label><input type="text" id="f_x" placeholder="@..."></div>
+      <div><label>🎂 誕生日</label><input type="date" id="f_birthday"></div>
       <div class="full"><label>どんな話をしたか</label><textarea id="f_talk" placeholder="覚えておきたい会話の内容"></textarea></div>
       <div class="full"><label>どんな音楽が好きか</label><input type="text" id="f_music" placeholder="好きなアーティスト・ジャンルなど"></div>
     </div>
@@ -197,6 +210,7 @@
       <option value="days_desc">会いに来てない日数が長い順</option>
       <option value="days_asc">最近会った順</option>
       <option value="met_desc">出会った日が新しい順</option>
+      <option value="birthday_asc">誕生日が近い順</option>
       <option value="name">名前順</option>
     </select>
     <span class="count" id="countLabel"></span>
@@ -205,10 +219,10 @@
   <div id="list"></div>
 
   <footer>
-    <div>Ink Lantern is <a href="https://github.com/InkInc-official/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
+    <div>InkLantern is <a href="https://github.com/YOUR-ACCOUNT/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
     <div style="margin-top:6px;"><a href="privacy.html">プライバシーポリシー</a>　・　<a href="terms.html">利用規約</a></div>
-    <div style="margin-top:6px;">Ink Inc. ライバー募集 → <a href="https://inkinc-hp.vercel.app/" target="_blank" rel="noopener">詳しくはこちら</a></div>
-</footer>
+    <div style="margin-top:6px;">Ink Inc. ライバー募集 → <a href="https://REPLACE-WITH-YOUR-RECRUIT-URL" target="_blank" rel="noopener">詳しくはこちら</a></div>
+  </footer>
 </div>
 
 <script>
@@ -234,6 +248,19 @@ function daysSince(dateStr){
   return Math.round((now - d) / 86400000);
 }
 
+function daysUntilBirthday(dateStr){
+  if(!dateStr) return null;
+  const b = new Date(dateStr);
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  let next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  next.setHours(0,0,0,0);
+  if(next < now){
+    next = new Date(now.getFullYear() + 1, b.getMonth(), b.getDate());
+  }
+  return Math.round((next - now) / 86400000);
+}
+
 function badgeColor(days){
   if(days === null) return 'var(--muted)';
   if(days <= 14) return 'var(--warm-near)';
@@ -254,11 +281,12 @@ function openForm(id){
     document.getElementById('f_gender').value = e.gender || '';
     document.getElementById('f_age').value = e.age || '';
     document.getElementById('f_x').value = e.x || '';
+    document.getElementById('f_birthday').value = e.birthday || '';
     document.getElementById('f_talk').value = e.talk || '';
     document.getElementById('f_music').value = e.music || '';
   } else {
     document.getElementById('formTitle').textContent = '新しく記録する';
-    ['f_metDate','f_lastDate','f_name','f_gender','f_age','f_x','f_talk','f_music'].forEach(id=>document.getElementById(id).value='');
+    ['f_metDate','f_lastDate','f_name','f_gender','f_age','f_x','f_birthday','f_talk','f_music'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f_lastDate').value = new Date().toISOString().slice(0,10);
   }
   panel.scrollIntoView({behavior:'smooth', block:'start'});
@@ -278,6 +306,7 @@ function saveEntry(){
     gender: document.getElementById('f_gender').value.trim(),
     age: document.getElementById('f_age').value.trim(),
     x: document.getElementById('f_x').value.trim(),
+    birthday: document.getElementById('f_birthday').value,
     talk: document.getElementById('f_talk').value.trim(),
     music: document.getElementById('f_music').value.trim(),
   };
@@ -300,10 +329,11 @@ function deleteEntry(id){
 function render(){
   const mode = document.getElementById('sortMode').value;
   let list = [...entries];
-  list.forEach(e => e._days = daysSince(e.lastDate));
+  list.forEach(e => { e._days = daysSince(e.lastDate); e._bday = daysUntilBirthday(e.birthday); });
   if(mode==='days_desc') list.sort((a,b)=>(b._days??-1)-(a._days??-1));
   if(mode==='days_asc') list.sort((a,b)=>(a._days??1e9)-(b._days??1e9));
   if(mode==='met_desc') list.sort((a,b)=> (b.metDate||'').localeCompare(a.metDate||''));
+  if(mode==='birthday_asc') list.sort((a,b)=>(a._bday??1e9)-(b._bday??1e9));
   if(mode==='name') list.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
   document.getElementById('countLabel').textContent = entries.length + ' 人を記録中';
@@ -321,6 +351,13 @@ function render(){
     const metLabel = e.metDate || '未記入';
     const lastLabel = e.lastDate || '未記入';
     const metaBits = [e.gender, e.age ? e.age+'歳' : '', e.x].filter(Boolean).join(' ・ ');
+    const bday = e._bday;
+    let bdayHtml = '';
+    if(bday !== null){
+      const cls = bday===0 ? 'bday-tag today' : (bday<=7 ? 'bday-tag soon' : 'bday-tag');
+      const label = bday===0 ? '🎂 今日が誕生日！' : `🎂 誕生日まであと${bday}日`;
+      bdayHtml = `<span class="tag ${cls}">${label}</span>`;
+    }
     return `
     <div class="card">
       <div class="card-top">
@@ -336,7 +373,7 @@ function render(){
         </div>
       </div>
       ${e.talk ? `<div class="body-row"><span class="label">TALK</span>${escapeHtml(e.talk)}</div>` : ''}
-      ${e.music ? `<div class="tags"><span class="tag">♪ ${escapeHtml(e.music)}</span></div>` : ''}
+      ${(e.music || bdayHtml) ? `<div class="tags">${e.music ? `<span class="tag">♪ ${escapeHtml(e.music)}</span>` : ''}${bdayHtml}</div>` : ''}
       <div class="footer-row">
         <div class="dates">出会い ${metLabel} ／ 最終訪問 ${lastLabel}</div>
         <div class="actions">
