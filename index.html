@@ -243,6 +243,7 @@
 
   <div class="toolbar">
     <button class="btn" onclick="openForm()">＋ 新しく記録する</button>
+    <input type="text" id="searchName" placeholder="🔍 名前で検索" oninput="render()" style="min-width:160px;">
     <select id="sortMode" onchange="render()">
       <option value="days_desc">会いに来てない日数が長い順</option>
       <option value="days_asc">最近会った順</option>
@@ -449,7 +450,11 @@ function deleteEntry(id){
 
 function render(){
   const mode = document.getElementById('sortMode').value;
+  const query = document.getElementById('searchName').value.trim().toLowerCase();
   let list = [...entries];
+  if(query){
+    list = list.filter(e => (e.name||'').toLowerCase().includes(query));
+  }
   list.forEach(e => { e._days = daysSince(e.lastDate); e._bday = daysUntilBirthday(e.birthday); });
   if(mode==='days_desc') list.sort((a,b)=>(b._days??-1)-(a._days??-1));
   if(mode==='days_asc') list.sort((a,b)=>(a._days??1e9)-(b._days??1e9));
@@ -457,11 +462,15 @@ function render(){
   if(mode==='birthday_asc') list.sort((a,b)=>(a._bday??1e9)-(b._bday??1e9));
   if(mode==='name') list.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
-  document.getElementById('countLabel').textContent = entries.length + ' 人を記録中';
+  document.getElementById('countLabel').textContent = query
+    ? `${list.length} / ${entries.length} 人`
+    : entries.length + ' 人を記録中';
 
   const container = document.getElementById('list');
   if(list.length===0){
-    container.innerHTML = '<div class="empty">まだ誰も記録されていません。<br>「＋ 新しく記録する」から、最初の出会いを書き留めてみてください。</div>';
+    container.innerHTML = query
+      ? `<div class="empty">「${escapeHtml(query)}」に一致する記録はありません。</div>`
+      : '<div class="empty">まだ誰も記録されていません。<br>「＋ 新しく記録する」から、最初の出会いを書き留めてみてください。</div>';
     return;
   }
 
