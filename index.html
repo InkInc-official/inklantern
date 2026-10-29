@@ -189,6 +189,15 @@
   .add-field-row{display:flex;gap:6px;}
   .add-field-row input{flex:1;}
 
+  .transfer{
+    margin-top:40px;padding:18px 20px;border:1px dashed var(--line);border-radius:14px;
+    background:var(--paper-card);
+  }
+  .transfer h3{font-family:'Shippori Mincho', serif;font-size:15px;margin:0 0 6px;}
+  .transfer p{margin:0 0 12px;font-size:12px;line-height:1.8;color:var(--muted);}
+  .transfer .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .transfer .warn{margin-top:10px;margin-bottom:0;color:var(--warm-far);}
+
   @media (max-width:560px){
     .grid{grid-template-columns:1fr;}
     .card-top{flex-direction:row;}
@@ -255,6 +264,18 @@
   </div>
 
   <div id="list"></div>
+
+  <div class="transfer">
+    <h3>データの引き継ぎ・バックアップ</h3>
+    <p>記録はこの端末の中だけに保存されています。別のPCで使うときは、ここで書き出したファイルを読み込んでください。</p>
+    <div class="row">
+      <button class="btn small" onclick="exportData()">書き出す（JSON）</button>
+      <button class="btn small ghost" onclick="startImport('merge')">読み込む（統合）</button>
+      <button class="btn small ghost" onclick="startImport('replace')">読み込む（置き換え）</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="handleImportFile(this)">
+    <p class="warn">※ ファイルにはリスナーさんの名前やXアカウントが含まれます。公開の場所には置かず、ご自身のUSBやクラウドなどで管理してください。</p>
+  </div>
 
   <footer>
     <div>Ink Lantern is <a href="https://github.com/InkInc-official/inklantern" target="_blank" rel="noopener">open source</a>. データはこの端末の中だけに保存され、どこにも送信されません。</div>
@@ -517,6 +538,126 @@ function render(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ===== データの引き継ぎ（JSON） =====
+let importMode = 'merge';
+
+function exportData(){
+  const payload = {
+    app: 'ink-lantern',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    customFields: customFields,
+    entries: entries.map(e=>{
+      const c = Object.assign({}, e);
+      delete c._days; delete c._bday;
+      return c;
+    }),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  const ymd = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  a.href = url;
+  a.download = `ink-lantern-backup-${ymd}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+function startImport(mode){
+  importMode = mode;
+  const input = document.getElementById('importFile');
+  input.value = '';
+  input.click();
+}
+
+function cleanText(v, max){
+  return (typeof v === 'string' || typeof v === 'number') ? String(v).slice(0, max) : '';
+}
+function cleanFieldName(v){
+  return cleanText(v, 30).replace(/["'<>\\]/g, '').trim();
+}
+function cleanEntry(raw){
+  if(!raw || typeof raw !== 'object') return null;
+  const name = cleanText(raw.name, 200).trim();
+  if(!name) return null;
+  let id = cleanText(raw.id, 100).replace(/[^\w.-]/g, '');
+  if(!id) id = Date.now() + Math.random().toString(16).slice(2);
+  const bd = /^\d{2}-\d{2}$/.test(raw.birthday || '') ? raw.birthday : '';
+  const custom = {};
+  if(raw.custom && typeof raw.custom === 'object'){
+    Object.keys(raw.custom).forEach(k=>{
+      const key = cleanFieldName(k);
+      const val = cleanText(raw.custom[k], 1000).trim();
+      if(key && val) custom[key] = val;
+    });
+  }
+  const dateOk = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : '';
+  return {
+    id: id,
+    metDate: dateOk(raw.metDate),
+    lastDate: dateOk(raw.lastDate),
+    name: name,
+    gender: cleanText(raw.gender, 100).trim(),
+    age: cleanText(raw.age, 20).trim(),
+    x: cleanText(raw.x, 100).trim(),
+    birthday: bd,
+    talk: cleanText(raw.talk, 5000).trim(),
+    music: cleanText(raw.music, 1000).trim(),
+    custom: custom,
+  };
+}
+
+function handleImportFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(reader.result); }
+    catch(e){ alert('JSONとして読み込めませんでした。Ink Lanternで書き出したファイルを選んでください。'); return; }
+    if(!data || data.app !== 'ink-lantern' || !Array.isArray(data.entries)){
+      alert('Ink Lanternのバックアップファイルではありません。');
+      return;
+    }
+    const incoming = data.entries.map(cleanEntry).filter(Boolean);
+    const incomingFields = [];
+    (Array.isArray(data.customFields) ? data.customFields : []).forEach(f=>{
+      const n = cleanFieldName(f);
+      if(n && !incomingFields.includes(n)) incomingFields.push(n);
+    });
+    incoming.forEach(e=>Object.keys(e.custom).forEach(k=>{
+      if(!incomingFields.includes(k)) incomingFields.push(k);
+    }));
+
+    if(importMode === 'replace'){
+      if(!confirm(`いまの記録（${entries.length}人）をすべて消して、ファイルの内容（${incoming.length}人）に置き換えます。よろしいですか？`)) return;
+      entries = incoming;
+      customFields = incomingFields;
+    } else {
+      let added = 0, updated = 0, kept = 0;
+      const byId = new Map(entries.map(e=>[e.id, e]));
+      incoming.forEach(inc=>{
+        const cur = byId.get(inc.id);
+        if(!cur){ byId.set(inc.id, inc); added++; }
+        else if((inc.lastDate || '') > (cur.lastDate || '')){ byId.set(inc.id, inc); updated++; }
+        else { kept++; }
+      });
+      if(!confirm(`新しく追加：${added}人\n更新（ファイルの方が新しい）：${updated}人\nそのまま（いまの方が新しい／同じ）：${kept}人\n\n取り込みますか？`)) return;
+      entries = Array.from(byId.values());
+      incomingFields.forEach(f=>{ if(!customFields.includes(f)) customFields.push(f); });
+    }
+    saveLocal();
+    saveFields();
+    render();
+    alert('取り込みが完了しました。');
+  };
+  reader.onerror = ()=>alert('ファイルを読み込めませんでした。');
+  reader.readAsText(file);
 }
 
 function escapeHtml(s){
